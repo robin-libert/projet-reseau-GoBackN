@@ -20,7 +20,7 @@ public class AppGoBackN{
 
     		IPHost host1= NetworkBuilder.createHost(network, "H1", IP_ADDR1, MAC_ADDR1);
     		host1.getIPLayer().addRoute(IP_ADDR2, "eth0");
-    		host1.addApplication(new AppSenderGoBackN(host1, IP_ADDR2));
+    		host1.addApplication(new AppSenderGoBackN(host1, IP_ADDR2, 0));
 
     		IPHost host2= NetworkBuilder.createHost(network,"H2", IP_ADDR2, MAC_ADDR2);
     		host2.getIPLayer().addRoute(IP_ADDR1, "eth0");
