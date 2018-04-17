@@ -4,7 +4,7 @@ import reso.common.Message;
 
 public class MessageGoBackN implements Message{
     private int seqNumber;
-    private int msg;
+    public int msg;
     private boolean isAck;
     public MessageGoBackN(int msg, boolean isAck) {
         this.seqNumber = 42;

@@ -19,7 +19,7 @@ public class AppSenderGoBackN extends AbstractApplication{
 
     @Override
     public void start() throws Exception {
-        ip.addListener(ProtocolGoBackN.IP_PROTO_GOBACKN, new ProtocolGoBackN());
+        ip.addListener(ProtocolGoBackN.IP_PROTO_GOBACKN, new ProtocolGoBackN((IPHost) host));
         ip.send(IPAddress.ANY, dst, ProtocolGoBackN.IP_PROTO_GOBACKN, new MessageGoBackN(num, false));
     }
 

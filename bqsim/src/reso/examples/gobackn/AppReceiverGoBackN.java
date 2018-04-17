@@ -14,7 +14,7 @@ public class AppReceiverGoBackN extends AbstractApplication{
 
     @Override
     public void start() throws Exception {
-        ip.addListener(ProtocolGoBackN.IP_PROTO_GOBACKN, new ProtocolGoBackN());
+        ip.addListener(ProtocolGoBackN.IP_PROTO_GOBACKN, new ProtocolGoBackN((IPHost) host));
     }
 
     @Override
