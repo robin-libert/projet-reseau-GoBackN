@@ -14,7 +14,7 @@ public class AppSenderGoBackN extends AbstractApplication{
         super(host, "sender");
         this.dst = dst;
         this.ip = host.getIPLayer();
-        this.num = num;
+        this.num = 42;
     }
 
     @Override
