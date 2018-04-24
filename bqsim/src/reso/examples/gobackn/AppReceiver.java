@@ -5,16 +5,16 @@ import reso.common.AbstractApplication;
 import reso.ip.IPHost;
 import reso.ip.IPLayer;
 
-public class AppReceiverGoBackN extends AbstractApplication{
+public class AppReceiver extends AbstractApplication{
     private final IPLayer ip;
-    public AppReceiverGoBackN(IPHost host) {
+    public AppReceiver(IPHost host) {
         super(host, "receiver");
         ip = host.getIPLayer();
     }
 
     @Override
     public void start() throws Exception {
-        ip.addListener(ProtocolGoBackN.IP_PROTO_GOBACKN, new ProtocolGoBackN((IPHost) host));
+        ip.addListener(Protocol.IP_PROTO_GOBACKN, new ProtocolReceiverSide((IPHost) host));
     }
 
     @Override

@@ -2,17 +2,17 @@ package reso.examples.gobackn;
 
 import reso.common.Message;
 
-public class MessageGoBackN implements Message{
+public class GoBackNMsg implements Message{
     public int seqNum;
     public int num;
     public boolean isAck;
     
-    public MessageGoBackN(int seqNum, boolean isAck) {
+    public GoBackNMsg(int seqNum, boolean isAck) {
         this.seqNum = seqNum;
         this.isAck = isAck;
     }
     
-    public MessageGoBackN(int msg, int seqNum, boolean isAck) {
+    public GoBackNMsg(int msg, int seqNum, boolean isAck) {
         this.seqNum = seqNum;
         this.num = msg;
         this.isAck = isAck;

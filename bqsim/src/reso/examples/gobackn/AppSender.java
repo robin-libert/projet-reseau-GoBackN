@@ -8,30 +8,32 @@ import reso.ip.IPAddress;
 import reso.ip.IPHost;
 import reso.ip.IPLayer;
 
-public class AppSenderGoBackN extends AbstractApplication{
+public class AppSender extends AbstractApplication{
     private final IPLayer ip;
     private final IPAddress dst;
-    private int num;
+    private int msg;
     private ArrayList<Integer> messages = new ArrayList<>();;
     private Random r;
     
-    public AppSenderGoBackN(IPHost host, IPAddress dst, int num) {
+    public AppSender(IPHost host, IPAddress dst, int num) {
         super(host, "sender");
         this.dst = dst;
         this.ip = host.getIPLayer();
-        this.num = -1;//message initial
+        this.msg = -1;//message initial
         this.r = new Random();
     }
 
     @Override
     public void start() throws Exception {
+        //On crée notre liste de messages
+        //On envoi la liste de messages au protocol
         for(int i = 0; i < 10;i++){
-            this.messages.add(r.nextInt(100));
+            this.messages.add(i+100);
         }
-        ProtocolGoBackN protocol = new ProtocolGoBackN((IPHost) host);
+        ProtocolSenderSide protocol = new ProtocolSenderSide((IPHost) host);
         protocol.loadMessages(this.messages);
-        ip.addListener(ProtocolGoBackN.IP_PROTO_GOBACKN, protocol);
-        ip.send(IPAddress.ANY, dst, ProtocolGoBackN.IP_PROTO_GOBACKN, new MessageGoBackN(this.num,0, false));
+        ip.addListener(Protocol.IP_PROTO_GOBACKN, protocol);
+        ip.send(IPAddress.ANY, dst, Protocol.IP_PROTO_GOBACKN, new GoBackNMsg(this.msg,-1, false));
     }
 
     @Override
