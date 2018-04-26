@@ -26,12 +26,11 @@ public class AppSender extends AbstractApplication{
     @Override
     public void start() throws Exception {
         //On crée notre liste de messages
-        //On envoi la liste de messages au protocol
-        for(int i = 0; i < 10;i++){
+        for(int i = 0; i < 20;i++){
             this.messages.add(i+100);
         }
         ProtocolSenderSide protocol = new ProtocolSenderSide((IPHost) host);
-        protocol.loadMessages(this.messages);
+        protocol.loadMessages(this.messages);//On envoi la liste de messages au protocol
         ip.addListener(Protocol.IP_PROTO_GOBACKN, protocol);
         ip.send(IPAddress.ANY, dst, Protocol.IP_PROTO_GOBACKN, new GoBackNMsg(this.msg,-1, false));
     }
