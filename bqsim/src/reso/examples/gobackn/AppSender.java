@@ -14,6 +14,8 @@ public class AppSender extends AbstractApplication{
     private int msg;
     private ArrayList<Integer> messages = new ArrayList<>();;
     private Random r;
+    private ProtocolSenderSide protocol;
+    private int sent;
     
     public AppSender(IPHost host, IPAddress dst, int num) {
         super(host, "sender");
@@ -21,17 +23,18 @@ public class AppSender extends AbstractApplication{
         this.ip = host.getIPLayer();
         this.msg = -1;//message initial
         this.r = new Random();
+        this.sent = 0;
     }
 
     @Override
     public void start() throws Exception {
         //On crée notre liste de messages
-        for(int i = 0; i < 30;i++){
+        for(int i = 0; i < 1000;i++){
             this.messages.add(i+100);
         }
-        ProtocolSenderSide protocol = new ProtocolSenderSide((IPHost) host);
-        protocol.loadMessages(this.messages);//On envoi la liste de messages au protocol
-        ip.addListener(Protocol.IP_PROTO_GOBACKN, protocol);
+        this.protocol = new ProtocolSenderSide((IPHost) host);
+        this.protocol.loadMessages(this.messages);//On envoi la liste de messages au protocol
+        ip.addListener(Protocol.IP_PROTO_GOBACKN, this.protocol);
         ip.send(IPAddress.ANY, dst, Protocol.IP_PROTO_GOBACKN, new GoBackNMsg(this.msg,-1, false));
     }
 

@@ -6,7 +6,6 @@ import reso.ip.Datagram;
 import reso.ip.IPAddress;
 import reso.ip.IPHost;
 import reso.ip.IPInterfaceAdapter;
-import reso.ip.IPInterfaceListener;
 
 public class ProtocolReceiverSide extends Protocol{
     private int currentSeqNum;
@@ -29,21 +28,16 @@ public class ProtocolReceiverSide extends Protocol{
                 System.out.println("Initialisation de la connexion ...");
                 host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(msg.seqNum, true));
             }else{
-                this.currentSeqNum = msg.seqNum;
-                if(this.currentSeqNum == this.expectedSeqNum){
-                    System.out.println(msg);
-                    if(r.nextInt(10)!=7){
+                if(r.nextInt(10)!=1){//On ne renvoit pas de ack pour simuler une perte de message
+                    this.currentSeqNum = msg.seqNum;
+                    if(this.currentSeqNum == this.expectedSeqNum){
+                        System.out.println(msg);
                         host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(msg.seqNum, true));
-                        
-                    }
-                    this.expectedSeqNum++;
-                }else{
-                    //Je renvois un ack pour dire que le dernier message reçu est le message avant celui attendu.
-                     if(r.nextInt(10)!=7){
+                        this.expectedSeqNum++;
+                    }else{
+                        //Je renvois un ack pour dire que le dernier message reçu est le message avant celui attendu.
                         host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(this.expectedSeqNum-1, true));
-                        
-                     }
-                     //System.out.println("out of order current seq num = " + currentSeqNum + " expected seq num = " + expectedSeqNum);
+                    }
                 }
             }            
         }
