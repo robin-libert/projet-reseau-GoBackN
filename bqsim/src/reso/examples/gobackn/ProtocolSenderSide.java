@@ -13,17 +13,18 @@ import reso.scheduler.Scheduler;
 public class ProtocolSenderSide extends Protocol{
     private int sendBase, nextSeqNum;
     private int sendingWindowSize;
-    private static ArrayList<Integer> packages = new ArrayList<>();
+    private ArrayList<Integer> packages;
     private AbstractTimer timer;
     private Scheduler scheduler;
     private Random r;
     private IPAddress dst;
     private int lastAck;
+    private int proba = 10;
     
-    public ProtocolSenderSide(IPHost host){
+    public ProtocolSenderSide(IPHost host, int size){
         super(host);
         this.scheduler = (Scheduler)host.getNetwork().getScheduler();
-        this.sendingWindowSize = 10;
+        this.sendingWindowSize = size;
         this.r=new Random();
     }
     
@@ -47,16 +48,17 @@ public class ProtocolSenderSide extends Protocol{
             this.sendBase = 0;
             this.nextSeqNum = 0;
             this.timer = new MyTimer(host.getNetwork().getScheduler(),3.0);
-            this.lastAck = 0;
+            this.lastAck = -1;
             send();
         }
-        if(r.nextInt(10)!=1){
+        if(r.nextInt(100)>=proba){//Pourcentage de chance de ne pas recevoir le ack
             if(msg.isAck && msg.seqNum != -1){//Quand on reçoit un ack normal, on incrémente sendBase
                 System.out.println(msg);
                 this.lastAck = msg.seqNum;
                 //Quand on reçoit ack(0), ça veut dire que sendBase augmente et vaut 1.
                 //Si on perd des ack, on risque de recevoir ack(3) directement après ack(0). Donc sendBase vaudra le seqNum de l'ack + 1.
-                this.sendBase = msg.seqNum + 1;
+                if(msg.seqNum + 1 < packages.size())
+                    this.sendBase = msg.seqNum + 1;
                 if(this.sendBase == this.nextSeqNum){
                     stopTimer();
                     send();
@@ -69,7 +71,6 @@ public class ProtocolSenderSide extends Protocol{
     }
     
     public void send() throws Exception{
-        
         GoBackNMsg msg = new GoBackNMsg(packages.get(this.nextSeqNum),this.nextSeqNum, false);
         if(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
             host.getIPLayer().send(IPAddress.ANY, dst, IP_PROTO_GOBACKN, msg);
@@ -82,25 +83,25 @@ public class ProtocolSenderSide extends Protocol{
     }
     
     public void startTimer(){
+        //System.out.println("start");
         stopTimer();
         this.timer = new MyTimer(host.getNetwork().getScheduler(),3.0);
         this.timer.start();
     }
     
     public void stopTimer(){
+        //System.out.println("stop");
         if(this.timer.isRunning())
             this.timer.stop();
     }
     
     public void timeout() throws Exception{
-        //System.out.println("lastack : " + this.lastAck);
-        //System.out.println("nextSeqNum : " + this.nextSeqNum);
-        this.sendBase = this.lastAck + 1;
-        this.nextSeqNum = this.lastAck + 1;
-        startTimer();
-        //for(int i = this.sendBase; i < this.nextSeqNum;i++){
+        if(lastAck+1 < packages.size()){
+            this.sendBase = this.lastAck + 1;
+            this.nextSeqNum = this.lastAck + 1;
+            startTimer();
             send();
-        //}
+        }
     }
     
     private class MyTimer extends AbstractTimer{
@@ -111,7 +112,7 @@ public class ProtocolSenderSide extends Protocol{
         @Override
         protected void run() throws Exception {
             this.stop();
-            System.out.println( "time=" + scheduler.getCurrentTime());
+            System.out.println("timeout=" + scheduler.getCurrentTime());
             timeout();
         }
     }

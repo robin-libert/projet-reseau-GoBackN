@@ -11,6 +11,7 @@ public class ProtocolReceiverSide extends Protocol{
     private int currentSeqNum;
     private int expectedSeqNum;
     private Random r;
+    private int proba = 10;
     
     public ProtocolReceiverSide(IPHost host){
         super(host);
@@ -28,7 +29,8 @@ public class ProtocolReceiverSide extends Protocol{
                 System.out.println("Initialisation de la connexion ...");
                 host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(msg.seqNum, true));
             }else{
-                if(r.nextInt(10)!=1){//On ne renvoit pas de ack pour simuler une perte de message
+                //Pourcentage des messages perdu.
+                if(r.nextInt(100)>=proba){//On ne renvoit pas de ack pour simuler une perte de message
                     this.currentSeqNum = msg.seqNum;
                     if(this.currentSeqNum == this.expectedSeqNum){
                         System.out.println(msg);
@@ -41,6 +43,5 @@ public class ProtocolReceiverSide extends Protocol{
                 }
             }            
         }
-    }
-    
+    } 
 }
