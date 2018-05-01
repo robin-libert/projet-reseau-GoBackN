@@ -41,39 +41,48 @@ public class ProtocolSenderSide extends Protocol{
             this.sendBase = 0;
             this.nextSeqNum = 0;
             this.currentSeqNum=0;
-            this.timer = new MyTimer(host.getNetwork().getScheduler(),1.0,src,datagram);
+            this.timer = new MyTimer(host.getNetwork().getScheduler(),15.0,src,datagram);
+            while(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < ProtocolSenderSide.packages.size()){
+                send(src,datagram,msg);
+            }
         }
+       
         
         if(msg.isAck && msg.seqNum != -1){//Quand on reçoit un ack normal, on incrémente sendBase
             System.out.println(msg);
             //Quand on reçoit ack(0), ça veut dire que sendBase augmente et vaut 1.
             //Si on perd des ack, on risque de recevoir ack(3) directement après ack(0). Donc sendBase vaudra le seqNum de l'ack + 1.
             this.sendBase = msg.seqNum + 1;
-            
-           
             if(this.sendBase == this.nextSeqNum){
                 this.timer.stop();
             }else{
                 this.currentSeqNum=msg.seqNum;
+                
                 this.timer.start();
                 
             }
-        }
-        
-        while(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < ProtocolSenderSide.packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
+            send(src,datagram,msg);
             
-            if( r.nextInt(10)!=7){
+           
+        }
+    }
+    
+    public void send(IPInterfaceAdapter src, Datagram datagram,GoBackNMsg msg) throws Exception{
+        //System.out.println(nextSeqNum);
+         if(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < ProtocolSenderSide.packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
+            
+            //if( r.nextInt(10)!=7){
                 host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(ProtocolSenderSide.packages.get(this.nextSeqNum),this.nextSeqNum, false));
-            }
+            
                 if(this.sendBase == this.nextSeqNum){
                     this.currentSeqNum=msg.seqNum;
                     this.timer.start();
                 }
                 this.nextSeqNum ++;
-            
-        }
-        
+           // }
+            }
     }
+
     
     public void timeout(IPInterfaceAdapter src, Datagram datagram) throws Exception{
         //nextSeqNum=currentSeqNum;

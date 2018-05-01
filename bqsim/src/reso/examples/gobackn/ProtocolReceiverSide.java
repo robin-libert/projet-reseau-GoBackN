@@ -32,17 +32,17 @@ public class ProtocolReceiverSide extends Protocol{
                 this.currentSeqNum = msg.seqNum;
                 if(this.currentSeqNum == this.expectedSeqNum){
                     System.out.println(msg);
-                    if(r.nextInt(10)!=7){
+                    //if(r.nextInt(10)!=7){
                         host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(msg.seqNum, true));
                         
-                    }
+                    //}
                     this.expectedSeqNum++;
                 }else{
                     //Je renvois un ack pour dire que le dernier message reçu est le message avant celui attendu.
-                     if(r.nextInt(10)!=7){
+                     //if(r.nextInt(10)!=7){
                         host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(this.expectedSeqNum-1, true));
                         
-                     }
+                     //}
                      //System.out.println("out of order current seq num = " + currentSeqNum + " expected seq num = " + expectedSeqNum);
                 }
             }            

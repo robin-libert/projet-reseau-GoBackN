@@ -26,7 +26,7 @@ public class AppSender extends AbstractApplication{
     @Override
     public void start() throws Exception {
         //On crée notre liste de messages
-        for(int i = 0; i < 30;i++){
+        for(int i = 0; i < 1000;i++){
             this.messages.add(i+100);
         }
         ProtocolSenderSide protocol = new ProtocolSenderSide((IPHost) host);
