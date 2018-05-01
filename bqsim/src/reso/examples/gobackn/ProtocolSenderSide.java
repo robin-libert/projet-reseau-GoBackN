@@ -13,101 +13,141 @@ import reso.scheduler.Scheduler;
 public class ProtocolSenderSide extends Protocol{
     private int sendBase, nextSeqNum;
     private int sendingWindowSize;
-    private static ArrayList<Integer> packages = new ArrayList<>();
+    private ArrayList<Integer> packages;
     private AbstractTimer timer;
     private Scheduler scheduler;
     private Random r;
-    private int currentSeqNum;
+    private IPAddress dst;
+    private int lastAck;
+    private int proba = 10;
+    private int[] congestionTest;
+    private int flagCongestion=0;
     
-    public ProtocolSenderSide(IPHost host){
+    public ProtocolSenderSide(IPHost host, int size){
         super(host);
         this.scheduler = (Scheduler)host.getNetwork().getScheduler();
-        this.sendingWindowSize = 4;
+        this.sendingWindowSize = size;
         this.r=new Random();
-        
+        this.congestionTest= new int[3];
     }
     
     public void loadMessages(ArrayList<Integer> messages){
-        ProtocolSenderSide.packages = messages;
+        packages = messages;
     }
     
+    /**
+     * Quand l'application sender reçoit un ack.
+     * @param src
+     * @param datagram
+     * @throws Exception 
+     */
     @Override
     public void receive(IPInterfaceAdapter src, Datagram datagram) throws Exception {
         GoBackNMsg msg = (GoBackNMsg) datagram.getPayload();
-        
-        
+        //On initialise la connexion.
         if(msg.isAck && msg.seqNum == -1){//Ack initial
             System.out.println("Connexion établie.");
+            this.dst = datagram.src;
             this.sendBase = 0;
             this.nextSeqNum = 0;
-            this.currentSeqNum=0;
-            this.timer = new MyTimer(host.getNetwork().getScheduler(),15.0,src,datagram);
-            while(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < ProtocolSenderSide.packages.size()){
-                send(src,datagram,msg);
-            }
+            this.timer = new MyTimer(host.getNetwork().getScheduler(),3.0);
+            this.lastAck = -1;
+            send();
+      
         }
-       
-        
-        if(msg.isAck && msg.seqNum != -1){//Quand on reçoit un ack normal, on incrémente sendBase
-            System.out.println(msg);
-            //Quand on reçoit ack(0), ça veut dire que sendBase augmente et vaut 1.
-            //Si on perd des ack, on risque de recevoir ack(3) directement après ack(0). Donc sendBase vaudra le seqNum de l'ack + 1.
-            this.sendBase = msg.seqNum + 1;
-            if(this.sendBase == this.nextSeqNum){
-                this.timer.stop();
-            }else{
-                this.currentSeqNum=msg.seqNum;
+        if(r.nextInt(100)>=proba){//Pourcentage de chance de ne pas recevoir le ack
+            if(msg.isAck && msg.seqNum != -1){//Quand on reçoit un ack normal, on incrémente sendBase
                 
-                this.timer.start();
-                
-            }
-            send(src,datagram,msg);
-            
-           
-        }
-    }
-    
-    public void send(IPInterfaceAdapter src, Datagram datagram,GoBackNMsg msg) throws Exception{
-        //System.out.println(nextSeqNum);
-         if(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < ProtocolSenderSide.packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
-            
-            //if( r.nextInt(10)!=7){
-                host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(ProtocolSenderSide.packages.get(this.nextSeqNum),this.nextSeqNum, false));
-            
-                if(this.sendBase == this.nextSeqNum){
-                    this.currentSeqNum=msg.seqNum;
-                    this.timer.start();
-                }
-                this.nextSeqNum ++;
-           // }
-            }
-    }
 
-    
-    public void timeout(IPInterfaceAdapter src, Datagram datagram) throws Exception{
-        //nextSeqNum=currentSeqNum;
-        currentSeqNum=nextSeqNum-1;
-        nextSeqNum=currentSeqNum;
+                
+                
+                congestionTest[flagCongestion]=msg.seqNum;
+                flagCongestion=(flagCongestion+1)%3;
+                
+                //for(int i=0;i<=2;i++)
+                //    System.out.println("element d indice "+i+" = "+congestionTest[i]);
+                
+                if(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0){
+                    System.out.println("============CONGESTION========");
+                    //System.out.println(5/2);
+                    //sendingWindowSize=sendingWindowSize/2;
+                    //System.out.println(sendingWindowSize);
+                }
+                if(!(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0))//pas de signe de congestion
+                    //additiveIncrease();
+                
+                
+                
+                System.out.println(msg);
+                this.lastAck = msg.seqNum;
+                //Quand on reçoit ack(0), ça veut dire que sendBase augmente et vaut 1.
+                //Si on perd des ack, on risque de recevoir ack(3) directement après ack(0). Donc sendBase vaudra le seqNum de l'ack + 1.
+                if(msg.seqNum + 1 < packages.size())
+                    this.sendBase = msg.seqNum + 1;
+                if(this.sendBase == this.nextSeqNum){
+                    stopTimer();
+                    send();
+                }else{
+                    startTimer();
+                }
+                
+            }
+        }
         
+    }
+    
+ public void send() throws Exception{
+        GoBackNMsg msg = new GoBackNMsg(packages.get(this.nextSeqNum),this.nextSeqNum, false);
+        //System.out.println("On est dans la methode send() , sendingWindowSize = "+sendingWindowSize);
+        if(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
+            host.getIPLayer().send(IPAddress.ANY, dst, IP_PROTO_GOBACKN, msg);
+            if(this.sendBase == this.nextSeqNum){
+                startTimer();
+            }
+            this.nextSeqNum ++;
+            send();
+        }
+    }
+ 
+ public void additiveIncrease(){
+     
+     sendingWindowSize=sendingWindowSize+1;
+     System.out.println("additiveIncrease, le sendingWindowSize = " +sendingWindowSize);
+ }
+ 
+    
+    public void startTimer(){
+        //System.out.println("start");
+        stopTimer();
+        this.timer = new MyTimer(host.getNetwork().getScheduler(),3.0);
         this.timer.start();
-        for(int i = this.sendBase; i < this.nextSeqNum;i++){
-            host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(ProtocolSenderSide.packages.get(i),i, false));
+    }
+    
+    public void stopTimer(){
+        //System.out.println("stop");
+        if(this.timer.isRunning())
+            this.timer.stop();
+    }
+    
+    public void timeout() throws Exception{
+        if(lastAck+1 < packages.size()){
+            this.sendBase = this.lastAck + 1;
+            this.nextSeqNum = this.lastAck + 1;
+            startTimer();
+            send();
         }
     }
     
     private class MyTimer extends AbstractTimer{
-        private IPInterfaceAdapter src;
-        private Datagram datagram;
-        public MyTimer(AbstractScheduler scheduler, double interval,IPInterfaceAdapter src, Datagram datagram){
+        public MyTimer(AbstractScheduler scheduler, double interval){
             super(scheduler, interval, false);
-            this.src = src;
-            this.datagram = datagram;
         }
 
         @Override
         protected void run() throws Exception {
-            System.out.println( "time=" + scheduler.getCurrentTime());
-            timeout(this.src, this.datagram);
+            this.stop();
+            System.out.println("timeout=" + scheduler.getCurrentTime());
+            timeout();
         }
     }
     
