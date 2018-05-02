@@ -20,13 +20,17 @@ public class ProtocolSenderSide extends Protocol{
     private IPAddress dst;
     private int lastAck;
     private int proba = 10;
+    private boolean flag=true;
+    private boolean flagCong=true;
+    
+    
     private int[] congestionTest;
     private int flagCongestion=0;
     
-    public ProtocolSenderSide(IPHost host, int size){
+    public ProtocolSenderSide(IPHost host){
         super(host);
         this.scheduler = (Scheduler)host.getNetwork().getScheduler();
-        this.sendingWindowSize = size;
+        this.sendingWindowSize = 1;
         this.r=new Random();
         this.congestionTest= new int[3];
     }
@@ -59,7 +63,12 @@ public class ProtocolSenderSide extends Protocol{
             if(msg.isAck && msg.seqNum != -1){//Quand on reçoit un ack normal, on incrémente sendBase
                 
 
+                if(flag){ //slowstart
+                    sendingWindowSize=sendingWindowSize+1;
+                    System.out.println(" On est dans slowstart le sendingWindowSize = "+sendingWindowSize);
+                }
                 
+                //else(!(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0))//pas de signe de congestion;
                 
                 congestionTest[flagCongestion]=msg.seqNum;
                 flagCongestion=(flagCongestion+1)%3;
@@ -67,14 +76,17 @@ public class ProtocolSenderSide extends Protocol{
                 //for(int i=0;i<=2;i++)
                 //    System.out.println("element d indice "+i+" = "+congestionTest[i]);
                 
-                if(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0){
+                if(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0&&flagCong==true){
                     System.out.println("============CONGESTION========");
-                    //System.out.println(5/2);
-                    //sendingWindowSize=sendingWindowSize/2;
-                    //System.out.println(sendingWindowSize);
+                    //System.out.println(1/2);
+                    flag=false;
+                    flagCong=false;
+                    if(sendingWindowSize!=1){
+                        sendingWindowSize=sendingWindowSize/2;
+                        System.out.println("Congestion, sending window size =" +sendingWindowSize);
+                    }
                 }
-                if(!(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0))//pas de signe de congestion
-                    //additiveIncrease();
+                
                 
                 
                 
@@ -85,6 +97,11 @@ public class ProtocolSenderSide extends Protocol{
                 if(msg.seqNum + 1 < packages.size())
                     this.sendBase = msg.seqNum + 1;
                 if(this.sendBase == this.nextSeqNum){
+                    if(!flag){
+                        sendingWindowSize=sendingWindowSize+1;
+                        System.out.println("additive increase, sending window size =" +sendingWindowSize);
+                    }
+                    flagCong=true;
                     stopTimer();
                     send();
                 }else{
@@ -109,11 +126,6 @@ public class ProtocolSenderSide extends Protocol{
         }
     }
  
- public void additiveIncrease(){
-     
-     sendingWindowSize=sendingWindowSize+1;
-     System.out.println("additiveIncrease, le sendingWindowSize = " +sendingWindowSize);
- }
  
     
     public void startTimer(){
@@ -133,7 +145,10 @@ public class ProtocolSenderSide extends Protocol{
         if(lastAck+1 < packages.size()){
             this.sendBase = this.lastAck + 1;
             this.nextSeqNum = this.lastAck + 1;
+
             startTimer();
+            sendingWindowSize=1;
+            flag=true;
             send();
         }
     }

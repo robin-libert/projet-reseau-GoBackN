@@ -20,7 +20,7 @@ public class Program{
 
     		IPHost host1= NetworkBuilder.createHost(network, "H1", IP_ADDR1, MAC_ADDR1);
     		host1.getIPLayer().addRoute(IP_ADDR2, "eth0");
-    		host1.addApplication(new AppSender(host1, IP_ADDR2,1000));//envoi de x messages
+    		host1.addApplication(new AppSender(host1, IP_ADDR2,100));//envoi de x messages
 
     		IPHost host2= NetworkBuilder.createHost(network,"H2", IP_ADDR2, MAC_ADDR2);
     		host2.getIPLayer().addRoute(IP_ADDR1, "eth0");

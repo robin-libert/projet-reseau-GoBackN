@@ -24,7 +24,7 @@ public class AppSender extends AbstractApplication{
  
     @Override
     public void start() throws Exception {
-        this.protocol = new ProtocolSenderSide((IPHost) host, 5);
+        this.protocol = new ProtocolSenderSide((IPHost) host);
         this.protocol.loadMessages(this.messages);//On envoi la liste de messages au protocol
         ip.addListener(Protocol.IP_PROTO_GOBACKN, this.protocol);
         ip.send(IPAddress.ANY, dst, Protocol.IP_PROTO_GOBACKN, new GoBackNMsg(-1,-1, false));
