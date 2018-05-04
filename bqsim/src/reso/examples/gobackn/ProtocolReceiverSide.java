@@ -11,7 +11,7 @@ public class ProtocolReceiverSide extends Protocol{
     private int currentSeqNum;
     private int expectedSeqNum;
     private Random r;
-    private int proba = 10;
+    private int proba = 1;
     
     public ProtocolReceiverSide(IPHost host){
         super(host);
