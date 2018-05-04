@@ -11,13 +11,14 @@ public class ProtocolReceiverSide extends Protocol{
     private int currentSeqNum;
     private int expectedSeqNum;
     private Random r;
-    private int proba = 1;
+    private int proba;
     
-    public ProtocolReceiverSide(IPHost host){
+    public ProtocolReceiverSide(IPHost host, int proba){
         super(host);
         this.currentSeqNum = -1;
         this.expectedSeqNum = 0;
         this.r=new Random();
+        this.proba = proba;
     }
     
   @Override

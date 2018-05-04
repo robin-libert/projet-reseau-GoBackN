@@ -19,22 +19,25 @@ public class ProtocolSenderSide extends Protocol{
     private Random r;
     private IPAddress dst;
     private int lastAck;
-    private int proba = 1;
+    private int proba;
     
-    private double ssthresh = Double.MAX_VALUE;//initialement un grand nombre
-    private boolean slowStart = true;
-    private double cwndTemp = cwnd;//utile pour additive increase
-    private int cong = -1;
+    private double ssthresh;
+    private double cwndTemp;
+    private int duplicated;
     
     private int[] congestionTest;
     private int flagCongestion=0;
     
-    public ProtocolSenderSide(IPHost host, int size){
+    public ProtocolSenderSide(IPHost host, int proba){
         super(host);
         this.scheduler = (Scheduler)host.getNetwork().getScheduler();
-        this.cwnd = size;
+        this.cwnd = 1;
         this.r=new Random();
         this.congestionTest= new int[3];
+        this.proba = proba;
+        this.ssthresh = Double.MAX_VALUE;//initialement un grand nombre
+        this.cwndTemp = cwnd;//utile pour additive increase
+        this.duplicated = -1;//permet de ne pas prend en compte les ack dupliqué plus de 3 fois
     }
     
     public void loadMessages(ArrayList<Integer> messages){
@@ -62,8 +65,8 @@ public class ProtocolSenderSide extends Protocol{
       
         }
         if(r.nextInt(100)>=proba){//Pourcentage de chance de ne pas recevoir le ack
-            //msg.seqNum != cong pour dire que si on reçoit 3 fois le même ack, on ne les prends plus en compte.
-            if(msg.isAck && msg.seqNum != -1 && msg.seqNum != cong){//Quand on reçoit un ack normal, on incrémente sendBase
+            //msg.seqNum != duplicated pour dire que si on reçoit 3 fois le même ack, on ne les prends plus en compte.
+            if(msg.isAck && msg.seqNum != -1 && msg.seqNum != duplicated){//Quand on reçoit un ack normal, on incrémente sendBase
                 System.out.println(msg);
                 
                 if(cwnd < ssthresh){//si on est en slowStart on augmente la taille de cwnd de 1 à chaque ack reçu
@@ -87,7 +90,7 @@ public class ProtocolSenderSide extends Protocol{
                     System.out.println("============CONGESTION========");
                     ssthresh = Math.ceil(cwnd/2);
                     System.out.println(ssthresh);
-                    cong = msg.seqNum;
+                    duplicated = msg.seqNum;
                     cwnd = Math.ceil(cwnd/2.); //Math.ceil comme ça la fenêtre ne vaut jamais 0
                     cwndTemp = cwnd;
                     stopTimer();

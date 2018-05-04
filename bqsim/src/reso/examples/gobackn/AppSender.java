@@ -2,7 +2,6 @@ package reso.examples.gobackn;
 
 
 import java.util.ArrayList;
-import java.util.Random;
 import reso.common.AbstractApplication;
 import reso.ip.IPAddress;
 import reso.ip.IPHost;
@@ -13,18 +12,20 @@ public class AppSender extends AbstractApplication{
     private final IPAddress dst;
     private ArrayList<Integer> messages = new ArrayList<>();;
     private ProtocolSenderSide protocol;
+    private int proba;
     
-    public AppSender(IPHost host, IPAddress dst, int n) {
+    public AppSender(IPHost host, IPAddress dst, int n, int p) {
         super(host, "sender");
         this.dst = dst;
         this.ip = host.getIPLayer();
+        this.proba = p;
         this.numberToSend(n);
     }
 
  
     @Override
     public void start() throws Exception {
-        this.protocol = new ProtocolSenderSide((IPHost) host, 5);
+        this.protocol = new ProtocolSenderSide((IPHost) host, this.proba);
         this.protocol.loadMessages(this.messages);//On envoi la liste de messages au protocol
         ip.addListener(Protocol.IP_PROTO_GOBACKN, this.protocol);
         ip.send(IPAddress.ANY, dst, Protocol.IP_PROTO_GOBACKN, new GoBackNMsg(-1,-1, false));
