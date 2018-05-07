@@ -7,17 +7,22 @@ import reso.ip.IPAddress;
 import reso.ip.IPHost;
 import reso.ip.IPInterfaceAdapter;
 
+/* Cette classe represente le receveur dans le protocole GoBackN : quand elle recoit un message, elle renvoie un ack pour transmettre a la classe ProtocolSenderSide
+*que le message a bien ete recu. Pour pouvoir experimenter le probleme de congestion un certain nombre de ack ne seront pas renvoyer.
+*/
+
 public class ProtocolReceiverSide extends Protocol{
     private int currentSeqNum;
     private int expectedSeqNum;
     private Random r;
-    private int proba = 1;
+    private int proba;
     
-    public ProtocolReceiverSide(IPHost host){
+    public ProtocolReceiverSide(IPHost host, int proba){
         super(host);
         this.currentSeqNum = -1;
         this.expectedSeqNum = 0;
         this.r=new Random();
+        this.proba = proba;
     }
     
   @Override
