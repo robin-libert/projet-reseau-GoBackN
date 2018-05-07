@@ -12,25 +12,27 @@ import reso.scheduler.Scheduler;
 
 public class ProtocolSenderSide extends Protocol{
     private int sendBase, nextSeqNum;
-    private int sendingWindowSize;
+    private double cwnd;
     private ArrayList<Integer> packages;
     private AbstractTimer timer;
     private Scheduler scheduler;
     private Random r;
     private IPAddress dst;
     private int lastAck;
-    private int proba = 10;
-    private boolean flag=true;
-    private boolean flagCong=true;
+    private int proba = 1;
     
+    private double ssthresh = Double.MAX_VALUE;//initialement un grand nombre
+    private boolean slowStart = true;
+    private double cwndTemp = cwnd;//utile pour additive increase
+    private int cong = -1;
     
     private int[] congestionTest;
     private int flagCongestion=0;
     
-    public ProtocolSenderSide(IPHost host){
+    public ProtocolSenderSide(IPHost host, int size){
         super(host);
         this.scheduler = (Scheduler)host.getNetwork().getScheduler();
-        this.sendingWindowSize = 1;
+        this.cwnd = size;
         this.r=new Random();
         this.congestionTest= new int[3];
     }
@@ -60,63 +62,62 @@ public class ProtocolSenderSide extends Protocol{
       
         }
         if(r.nextInt(100)>=proba){//Pourcentage de chance de ne pas recevoir le ack
-            if(msg.isAck && msg.seqNum != -1){//Quand on reçoit un ack normal, on incrémente sendBase
+            //msg.seqNum != cong pour dire que si on reçoit 3 fois le même ack, on ne les prends plus en compte.
+            if(msg.isAck && msg.seqNum != -1 && msg.seqNum != cong){//Quand on reçoit un ack normal, on incrémente sendBase
+                System.out.println(msg);
                 
-
-                if(flag){ //slowstart
-                    sendingWindowSize=sendingWindowSize+1;
-                    System.out.println(" On est dans slowstart le sendingWindowSize = "+sendingWindowSize);
-                }
+                if(cwnd < ssthresh){//si on est en slowStart on augmente la taille de cwnd de 1 à chaque ack reçu
+                    cwnd += 1;
+                    cwndTemp = cwnd;
+                    System.out.println("slowStart : "+cwnd);
+                }else{//additive increase cwnd = cwnd + MSS^2/cwnd ici MSS vaut 1
+                    cwndTemp += 1./cwnd;
+                    //On ajoute une petite fraction à cwndTemp à chaque ack reçu.
+                    //Comme la taille de fenêtre doit être entière, cwnd vaut la borne inférieure de cwndTemp.
+                    cwnd = Math.floor(cwndTemp);
+                    if(cwnd == 0)
+                        cwnd = 1;
+                    System.out.println("additive increase : "+cwnd);
+                }    
                 
-                //else(!(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0))//pas de signe de congestion;
                 
                 congestionTest[flagCongestion]=msg.seqNum;
                 flagCongestion=(flagCongestion+1)%3;
-                
-                //for(int i=0;i<=2;i++)
-                //    System.out.println("element d indice "+i+" = "+congestionTest[i]);
-                
-                if(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0&&flagCong==true){
+                if(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0){//si on a de la congestion
                     System.out.println("============CONGESTION========");
-                    //System.out.println(1/2);
-                    flag=false;
-                    flagCong=false;
-                    if(sendingWindowSize!=1){
-                        sendingWindowSize=sendingWindowSize/2;
-                        System.out.println("Congestion, sending window size =" +sendingWindowSize);
-                    }
-                }
-                
-                
-                
-                
-                System.out.println(msg);
-                this.lastAck = msg.seqNum;
-                //Quand on reçoit ack(0), ça veut dire que sendBase augmente et vaut 1.
-                //Si on perd des ack, on risque de recevoir ack(3) directement après ack(0). Donc sendBase vaudra le seqNum de l'ack + 1.
-                if(msg.seqNum + 1 < packages.size())
-                    this.sendBase = msg.seqNum + 1;
-                if(this.sendBase == this.nextSeqNum){
-                    if(!flag){
-                        sendingWindowSize=sendingWindowSize+1;
-                        System.out.println("additive increase, sending window size =" +sendingWindowSize);
-                    }
-                    flagCong=true;
+                    ssthresh = Math.ceil(cwnd/2);
+                    System.out.println(ssthresh);
+                    cong = msg.seqNum;
+                    cwnd = Math.ceil(cwnd/2.); //Math.ceil comme ça la fenêtre ne vaut jamais 0
+                    cwndTemp = cwnd;
                     stopTimer();
-                    send();
-                }else{
-                    startTimer();
+                    if(lastAck+1 < packages.size()){
+                        this.sendBase = this.lastAck + 1;
+                        this.nextSeqNum = this.lastAck + 1;
+                        //startTimer();
+                        send();
+                    }
+                }else{//si on a pas de congestion
+                    this.lastAck = msg.seqNum;
+                    //Quand on reçoit ack(0), ça veut dire que sendBase augmente et vaut 1.
+                    //Si on perd des ack, on risque de recevoir ack(3) directement après ack(0). Donc sendBase vaudra le seqNum de l'ack + 1.
+                    if(msg.seqNum + 1 < packages.size())
+                        this.sendBase = msg.seqNum + 1;
+                    if(this.sendBase == this.nextSeqNum){
+                        stopTimer();
+                        send();
+                    }else{
+                        startTimer();
+                    }
                 }
-                
             }
         }
-        
     }
     
- public void send() throws Exception{
+    public void send() throws Exception{
         GoBackNMsg msg = new GoBackNMsg(packages.get(this.nextSeqNum),this.nextSeqNum, false);
-        //System.out.println("On est dans la methode send() , sendingWindowSize = "+sendingWindowSize);
-        if(nextSeqNum < sendBase + sendingWindowSize && this.nextSeqNum < packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
+        //System.out.println("On est dans la methode send() , cwnd = "+cwnd);
+        if(nextSeqNum < sendBase + cwnd && this.nextSeqNum < packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
             host.getIPLayer().send(IPAddress.ANY, dst, IP_PROTO_GOBACKN, msg);
             if(this.sendBase == this.nextSeqNum){
                 startTimer();
@@ -125,8 +126,6 @@ public class ProtocolSenderSide extends Protocol{
             send();
         }
     }
- 
- 
     
     public void startTimer(){
         //System.out.println("start");
@@ -143,12 +142,13 @@ public class ProtocolSenderSide extends Protocol{
     
     public void timeout() throws Exception{
         if(lastAck+1 < packages.size()){
+            ssthresh = Math.ceil(cwnd/2);
+            System.out.println(ssthresh);
+            cwnd = 1;
+            cwndTemp = cwnd;
             this.sendBase = this.lastAck + 1;
             this.nextSeqNum = this.lastAck + 1;
-
             startTimer();
-            sendingWindowSize=1;
-            flag=true;
             send();
         }
     }
