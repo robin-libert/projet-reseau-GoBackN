@@ -16,10 +16,10 @@ import reso.ip.IPInterfaceAdapter;
 import reso.scheduler.AbstractScheduler;
 import reso.scheduler.Scheduler;
 
-/*Cette methode represente l'envoyeur dans le protocol goBackN. Elle se charge d'envoyer des messages a la classe ProtocolReceiverSide.On introduit une notion
-*de probabilite que l'ack renvoye par la classe ProtocolReceiverSide ne soit pas recu pour pouvoir implementer le slowStart, l'additive increase et le multiply decrease.
-*/
-
+/**
+ *Cette classe represente le sender dans le protocol goBackN. Elle se charge d'envoyer des messages a la classe ProtocolReceiverSide.On introduit une notion
+ *de probabilite que l'ack renvoye par la classe ProtocolReceiverSide ne soit pas recu pour pouvoir implementer le slowStart, l'additive increase et le multiplicative decrease.
+ */
 public class ProtocolSenderSide extends Protocol{
     private int sendBase, nextSeqNum;
     private double cwnd;
@@ -36,18 +36,23 @@ public class ProtocolSenderSide extends Protocol{
     private double time1, time2;
     private boolean computeRTO;//c'est un flag qui permet de savoir quand démarrer le timer pour le calcul de RTO
     
-    private int[] congestionTest;
-    private int flagCongestion=0;
+    private int[] congestionTest;//on stocke dans ce tableau les 3 derniers acks recus, utile pour detecter de la congestion (3 acks duppliques)
+    private int flagCongestion=0;//l indice du tableau ou je vais stocker le dernier ack recu
 
-    private ArrayList<String> test;
+    private ArrayList<String> plots; //je stocke les plots a afficher dans cette arrayList
     private  File file;
     BufferedWriter writer = null;
-    private int totalMsg;
-    private double lastedCwnd=0;
-    private double newCwnd=0;
-            
-    
-    public ProtocolSenderSide(IPHost host, int proba,int n) throws IOException{
+
+    private double lastedCwnd=0;//la derniere taille de fenetre de congestion  recue
+    private double newCwnd=0;//la nouvelle taille de fenetre de congestion recue
+
+
+   /**
+     * @param host
+     * @param proba la probabilite de perte de messages.
+     * @throws IOException 
+     */       
+    public ProtocolSenderSide(IPHost host, int proba) throws IOException{
 
         super(host);
         this.scheduler = (Scheduler)host.getNetwork().getScheduler();
@@ -65,17 +70,22 @@ public class ProtocolSenderSide extends Protocol{
         this.beta = 0.25;
         this.computeRTO = true;
         
-        test=new ArrayList<String>();
-        this.totalMsg=n;
+        plots=new ArrayList<String>();
+
 
     }
+    
+    /**
+     * @param messages la liste des messages a transmettre.
+     */ 
     
     public void loadMessages(ArrayList<Integer> messages){
         packages = messages;
     }
     
     /**
-     * Quand l'application sender reçoit un ack.
+     * Decris les differents comportements du Sender lorsque cette classe recoit un ack. Dans cette methode nous implementons le slow start, l additive increase, la
+     * multiplicative decrease et la reaction lors d'un timeOut.
      * @param src
      * @param datagram
      * @throws Exception 
@@ -93,8 +103,8 @@ public class ProtocolSenderSide extends Protocol{
             this.nextSeqNum = 0;
             this.timer = new MyTimer(host.getNetwork().getScheduler(),RTO);
             this.lastAck = -1;
-            test.add("Nombre total de message : "+totalMsg);
-            test.add(" "+currentTime+"    " +cwnd);
+            plots.add("Nombre total de message : "+packages.size());
+            plots.add("Probabilite : "+proba);
             send();
         }
 
@@ -119,15 +129,15 @@ public class ProtocolSenderSide extends Protocol{
                 }else if(this.expected < msg.seqNum && this.computeRTO == false){
                     this.computeRTO = true;
                 }
+                
                 if(cwnd < ssthresh){//si on est en slowStart on augmente la taille de cwnd de 1 à chaque ack reçu
                     lastedCwnd=cwnd;
                     cwnd += 1;
                     newCwnd=cwnd;
-                    System.out.println("Slow start : le time est = "+currentTime+ " le cwnd = "+cwnd);
-                    //test.add(" "+currentTime+"    " +cwnd);
-                    cwndTemp = cwnd;
-                    //System.out.println("slowStart : "+cwnd);
-                }else{//additive increase cwnd = cwnd + MSS^2/cwnd ici MSS vaut 1
+                    cwndTemp = cwnd;       
+                }
+                
+                else{//additive increase cwnd = cwnd + MSS^2/cwnd ici MSS vaut 1
                     lastedCwnd=cwnd;
                     cwndTemp += 1./cwnd;
                     //On ajoute une petite fraction à cwndTemp à chaque ack reçu.
@@ -137,47 +147,35 @@ public class ProtocolSenderSide extends Protocol{
                         cwnd = 1;
                     }
                     newCwnd=cwnd;
-                    //test.add(" "+currentTime+"    " +cwnd);
-                    System.out.println("additive increase newCwnd : "+newCwnd);
-                    System.out.println("additive increase lastedCwnd: "+lastedCwnd);
-                }    
+                } 
+                
                 congestionTest[flagCongestion]=msg.seqNum;
                 flagCongestion=(flagCongestion+1)%3;
+                
                 if(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0){//si on a de la congestion
+                
                     System.out.println("============CONGESTION========");
-                    //lastedCwnd=cwnd;
-                    lastedCwnd=newCwnd;
                     ssthresh = Math.ceil(cwnd/2);
-
                     duplicated = msg.seqNum;
                     cwnd = Math.ceil(cwnd/2.); //Math.ceil comme ça la fenêtre ne vaut jamais 0
-                    
-                    //test.add(" "+currentTime+"    " +cwnd);
                     newCwnd=cwnd;
-                    
                     cwndTemp = cwnd;
                     stopTimer();
 
                     if(lastAck+1 < packages.size()){
-                        //test.add(" "+currentTime+"    " +cwnd);
                         this.sendBase = this.lastAck + 1;
                         this.nextSeqNum = this.lastAck + 1;
                         //startTimer();
                         send();
                     }
-                                        
-                    
-                    //test.add(" "+currentTime+"    " +cwnd);
                 }
                 
-                if(lastedCwnd!=newCwnd){
-                        //test.add(" "+currentTime+"    " +newCwnd);
-                        test.add(" "+currentTime+"    " +lastedCwnd);
-                    }
+                if(lastedCwnd!=newCwnd){ //j'ajoute a mon arrayList de plots la derniere taille de fenetre connue si elle est differente de la nouvelle (congestion)
+                    plots.add("Temps ecoule  : "+currentTime+"                          fenetre de congestion  : " +lastedCwnd);
+                }
                 
-                
-                //else{//si on a pas de congestion
-                if(!(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0)){
+               
+                if(!(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0)){ //pas de congestion
                     this.lastAck = msg.seqNum;
                     //Quand on reçoit ack(0), ça veut dire que sendBase augmente et vaut 1.
                     //Si on perd des ack, on risque de recevoir ack(3) directement après ack(0). Donc sendBase vaudra le seqNum de l'ack + 1.
@@ -190,25 +188,19 @@ public class ProtocolSenderSide extends Protocol{
                         startTimer();
                     }
                 }
-                if(msg.seqNum==totalMsg-1){
-                    try {
-                        file = new File("Plots.txt");
-
-                        writer = new BufferedWriter(new FileWriter(file));
-                        for(int i=0;i<test.size();i++){
-                            writer.write(test.get(i));
-                            writer.write("\n");
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    writer.close();
+                if(msg.seqNum==packages.size()-1){ // si le dernier message est recu, je peux ecrire dans mon ficher .txt les valeurs de l'arrayList plots
+                    writePlots();
         
                 }
             }
         }
     }
     
+    
+    /**
+     * Cette methode envoie des messages.
+     * @throws Exception 
+     */
     public void send() throws Exception{
         GoBackNMsg msg = new GoBackNMsg(packages.get(this.nextSeqNum),this.nextSeqNum, false);
         if(nextSeqNum < sendBase + cwnd && this.nextSeqNum < packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
@@ -227,17 +219,47 @@ public class ProtocolSenderSide extends Protocol{
         }
     }
     
+   /**
+    * Cette methode stoppe le timer si il etait en marche, en cree un autre et lance ce nouveau timer. 
+    */
     public void startTimer(){
         stopTimer();
         this.timer = new MyTimer(host.getNetwork().getScheduler(),RTO);
         this.timer.start();
     }
-    
+   /**
+    * Cette methode verifie si le timer est en marche et si oui, le stoppe.
+    */
     public void stopTimer(){
         if(this.timer.isRunning())
             this.timer.stop();
     }
     
+   /**
+    * Cette methode ecrit les plots dans le fichier nomme "Plots.txt".
+    * @throws IOException
+    */
+    public void writePlots() throws IOException{
+            try {
+                        
+                file = new File("Plots.txt");
+                writer = new BufferedWriter(new FileWriter(file));
+                for(int i=0;i<plots.size();i++){
+                        writer.write(plots.get(i));
+                        writer.write("\n");
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+            writer.close();
+    }
+    
+    
+   /**
+    * Cette methode decrit comment reagir lors de la reception d un timeOut.
+    * @throws Exception
+    */
     public void timeout() throws Exception{
         if(lastAck+1 < packages.size()){
             ssthresh = Math.ceil(cwnd/2);
@@ -252,10 +274,18 @@ public class ProtocolSenderSide extends Protocol{
     }
     
     private class MyTimer extends AbstractTimer{
+      /*
+       * @param scheduler
+       * @param interval
+       */
         public MyTimer(AbstractScheduler scheduler, double interval){
             super(scheduler, interval, false);
         }
 
+        
+      /**
+       * @throws Exception
+       */
         @Override
         protected void run() throws Exception {
             this.stop();

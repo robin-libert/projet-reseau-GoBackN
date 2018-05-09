@@ -7,16 +7,20 @@ import reso.ip.IPAddress;
 import reso.ip.IPHost;
 import reso.ip.IPInterfaceAdapter;
 
-/* Cette classe represente le receveur dans le protocole GoBackN : quand elle recoit un message, elle renvoie un ack pour transmettre a la classe ProtocolSenderSide
-*que le message a bien ete recu. Pour pouvoir experimenter le probleme de congestion un certain nombre de ack ne seront pas renvoyer.
-*/
-
+ /**
+  * Cette classe represente le receveur dans le protocole GoBackN : quand elle recoit un message, elle renvoie un ack pour transmettre a la classe ProtocolSenderSide
+  *que le message a bien ete recu. Pour pouvoir experimenter le probleme de congestion un certain nombre de ack ne sera pas renvoye.
+  */
 public class ProtocolReceiverSide extends Protocol{
     private int currentSeqNum;
     private int expectedSeqNum;
     private Random r;
     private int proba;
     
+    /**
+     * @param host
+     * @param proba
+     */
     public ProtocolReceiverSide(IPHost host, int proba){
         super(host);
         this.currentSeqNum = -1;
@@ -25,6 +29,13 @@ public class ProtocolReceiverSide extends Protocol{
         this.proba = proba;
     }
     
+    
+    /**
+     * Decris les differents comportements du receveur lorsque cette classe recoit un message. 
+     * @param src
+     * @param datagram
+     * @throws Exception
+     */ 
   @Override
     public void receive(IPInterfaceAdapter src, Datagram datagram) throws Exception {
         GoBackNMsg msg = (GoBackNMsg) datagram.getPayload();
