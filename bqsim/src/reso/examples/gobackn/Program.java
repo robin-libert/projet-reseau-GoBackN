@@ -25,12 +25,12 @@ public class Program{
     		IPHost host1= NetworkBuilder.createHost(network, "H1", IP_ADDR1, MAC_ADDR1);
     		host1.getIPLayer().addRoute(IP_ADDR2, "eth0");
 
-    		host1.addApplication(new AppSender(host1, IP_ADDR2,1000,1));//envoi de x messages avec proba y
+    		host1.addApplication(new AppSender(host1, IP_ADDR2,10000,10));//envoi de x messages avec proba y
 
 
     		IPHost host2= NetworkBuilder.createHost(network,"H2", IP_ADDR2, MAC_ADDR2);
     		host2.getIPLayer().addRoute(IP_ADDR1, "eth0");
-    		host2.addApplication(new AppReceiver(host2,1));//reception de messages avec proba x
+    		host2.addApplication(new AppReceiver(host2,10));//reception de messages avec proba x
 
     		EthernetInterface h1_eth0= (EthernetInterface) host1.getInterfaceByName("eth0");
     		EthernetInterface h2_eth0= (EthernetInterface) host2.getInterfaceByName("eth0");

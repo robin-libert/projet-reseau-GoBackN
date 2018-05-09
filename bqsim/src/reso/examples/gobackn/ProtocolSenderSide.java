@@ -102,6 +102,7 @@ public class ProtocolSenderSide extends Protocol{
             //msg.seqNum != duplicated pour dire que si on reçoit 3 fois le même ack, on ne les prends plus en compte.
             if(msg.isAck && msg.seqNum != -1 && msg.seqNum != duplicated){//Quand on reçoit un ack normal, on incrémente sendBase
                 System.out.println(msg);
+                System.out.println("RTO = "+RTO);
                 //C'est ici que l'on s'occupe de modifier la valeur de RTO
                 if(this.expected == msg.seqNum && this.computeRTO == false){
                     this.time2 = scheduler.getCurrentTime();
@@ -115,6 +116,8 @@ public class ProtocolSenderSide extends Protocol{
                         this.RTTVAR = (1 - this.beta) * this.RTTVAR + this.beta * Math.abs(this.SRTT - R);
                     }
                     this.RTO = this.SRTT + 4*this.RTTVAR;
+                }else if(this.expected < msg.seqNum && this.computeRTO == false){
+                    this.computeRTO = true;
                 }
                 if(cwnd < ssthresh){//si on est en slowStart on augmente la taille de cwnd de 1 à chaque ack reçu
                     lastedCwnd=cwnd;
