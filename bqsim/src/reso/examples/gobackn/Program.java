@@ -14,10 +14,11 @@ import reso.utilities.NetworkBuilder;
 public class Program{
 
     public static void main(String [] args) {
-
-        if(args.length==2){
-            int numberOfMessages=Integer.parseInt(args[0]); // le premier argument doit etre le nombre de message
-            int probability=Integer.parseInt(args[1]); // le deuxiemre argument doit etre la probabilite de perte
+        
+        int numberOfMessages=Integer.parseInt(args[0]); // le premier argument doit etre le nombre de message
+        int probability=Integer.parseInt(args[1]); // le deuxiemre argument doit etre la probabilite de perte
+        if((args.length==2)&&(probability>=0&&probability<100)){
+ 
         
 	AbstractScheduler scheduler= new Scheduler();
 	Network network= new Network(scheduler);
@@ -53,7 +54,7 @@ public class Program{
             }
         }
         else{
-            System.out.println("Il faut 2 arguments, le premier est le nombre de messages a envoyer et le deuxieme est la probabilite de perte");
+            System.out.println("Il faut 2 arguments, le premier est le nombre de messages a envoyer et le deuxieme est la probabilite de perte, un entier compris entre 0 et 100");
         }
     }
 }

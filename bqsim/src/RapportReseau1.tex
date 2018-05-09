@@ -1,0 +1,33 @@
+\documentclass{report}
+\usepackage[pdftex]{graphicx}
+\usepackage{sidecap}
+\usepackage{fancyhdr}
+\usepackage{lscape}
+\usepackage[absolute]{textpos}
+\usepackage{amssymb}
+\title{Rapport Reseaux 1: \\ ~~\\ Projet: Protocole go-back-n avec controle de congestion}
+\author{Groupe x: \\ Libert Robin MATRICULE ; Mattens Simon 160846 \\ BA2 Info}
+\date{11 mai 2018}
+
+\pagestyle{fancy}
+\lhead{Groupe x: Libert R. ; Mattens S.}
+\rhead{BA2 Info}
+\cfoot{\thepage}
+\begin{document}
+\maketitle
+\section*{1. Construction et execution}
+\hspace*{0,5cm} Pour lancer l application, il faut se positionner dans le repertoire src, compiler les fichiers a l'aide de la commande "java reso/examples/gobackn/*.java", executer le fichier Program à l aide de la commande "java reso/examples/gobackn/Program arg1 arg2" ou arg1 represente le nombre de message a envoyer et arg2 la probabilite de perte des messages. Une serie de log apparaitra dans la console pour expliquer ce qu il se passe dans l application et les plots seront dans le fichier "Plots.txt" situe dans le repertoire src.
+\section*{2 Approche utilisee dans l implementation}
+\hspace*{0,5cm} Lors de l implementation du protocol goBackN, nous n'avons pas utilise de probabilite de perte de messages afin de s assurer que notre implementation fonctionnait. La classe jouant le role du sender envoyait autant de messages qu elle pouvait (en remplissant la fenetre de congestion, initialement de valeur 1) et la classe jouant le role du receveur renvoyait un ack au sender a chaque fois qu un message etait bien arrive. La taille de la fenetre de congestion augmentait a chaque aller-retour.
+\\Pour pouvoir simuler un probleme de congestion nous avons introduit la notion de probabilite de perte de message. Celle-ci etant fixe par l utilisateur de l application, elle peut perdre soit un message (du cote du sender) soit un ack (du cote du receveur) si un nombre aleatoire entre 1 et 100 est plus petit que cette probabilite prealablement choisie.
+\\Nous avons premierement implemente le slowstart, ensuite l additive increase et enfin le multiplicative decrease.
+\\Pour terminer nous avons regler le probleme du timer.
+\section*{3 Difficultes rencontres}
+\begin{itemize}
+\item Lors de l implementation du protocole goBackN, nous avons eu du mal a visualier comment faire pour le systeme des acks.
+\item Pour le probleme de congestion, il a fallu du temps avant de bien comprendre TCP Reno ainsi que les differentes techniques demandees.
+\item D autres idees ? 
+\end{itemize}
+\section*{ 4 Etat de l implementation finale }
+\hspace*{0,5cm} Le protocole goBackN a ete correctement implemente ainsi que les differentes techniques de TCP Reno. Les plots sont present dans le fichier "Plots.txt", ce fichier represente l evolution de la fenetre de congestion au fil du temps.
+\end{document}
