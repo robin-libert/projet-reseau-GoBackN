@@ -28,17 +28,16 @@ public class ProtocolSenderSide extends Protocol{
     private Scheduler scheduler;
     private Random r;
     private IPAddress dst;
-    private int lastAck;
-    private int proba;
+    private int lastAck, proba;
     
-    private double ssthresh;
-    private double cwndTemp;
-    private int duplicated;
+    private double ssthresh, cwndTemp;
+    private int duplicated, expected;
+    private double RTO, SRTT, RTTVAR, alpha, beta;
+    private double time1, time2;
+    private boolean computeRTO;//c'est un flag qui permet de savoir quand démarrer le timer pour le calcul de RTO
     
     private int[] congestionTest;
     private int flagCongestion=0;
-    
-
 
     private ArrayList<String> test;
     private  File file;
@@ -59,6 +58,13 @@ public class ProtocolSenderSide extends Protocol{
         this.ssthresh = Double.MAX_VALUE;//initialement un grand nombre
         this.cwndTemp = cwnd;//utile pour additive increase
         this.duplicated = -1;//permet de ne pas prend en compte les ack dupliqué plus de 3 fois
+        
+        //Valeurs des slides
+        this.RTO = 3.0;
+        this.alpha = 0.125;
+        this.beta = 0.25;
+        this.computeRTO = true;
+        
         test=new ArrayList<String>();
         this.totalMsg=n;
 
@@ -79,37 +85,43 @@ public class ProtocolSenderSide extends Protocol{
         GoBackNMsg msg = (GoBackNMsg) datagram.getPayload();
         //On initialise la connexion.
         
-        Double time=scheduler.getCurrentTime();
+        Double currentTime = scheduler.getCurrentTime();
         if(msg.isAck && msg.seqNum == -1){//Ack initial
             System.out.println("Connexion établie.");
             this.dst = datagram.src;
             this.sendBase = 0;
             this.nextSeqNum = 0;
-            this.timer = new MyTimer(host.getNetwork().getScheduler(),3.0);
+            this.timer = new MyTimer(host.getNetwork().getScheduler(),RTO);
             this.lastAck = -1;
             test.add("Nombre total de message : "+totalMsg);
-            test.add(" "+time+"    " +cwnd);
+            test.add(" "+currentTime+"    " +cwnd);
             send();
-      
         }
-        
-        System.out.println("time = " +time);
+
         if(r.nextInt(100)>=proba){//Pourcentage de chance de ne pas recevoir le ack
             //msg.seqNum != duplicated pour dire que si on reçoit 3 fois le même ack, on ne les prends plus en compte.
             if(msg.isAck && msg.seqNum != -1 && msg.seqNum != duplicated){//Quand on reçoit un ack normal, on incrémente sendBase
-
-                
                 System.out.println(msg);
+                //C'est ici que l'on s'occupe de modifier la valeur de RTO
+                if(this.expected == msg.seqNum && this.computeRTO == false){
+                    this.time2 = scheduler.getCurrentTime();
+                    this.computeRTO = true;
+                    double R = Math.abs(this.time2 - this.time1);
+                    if(this.SRTT == 0){
+                        this.SRTT = R;
+                        this.RTTVAR = R/2;
+                    }else{
+                        this.SRTT = (1 - this.alpha) * this.SRTT + this.alpha * R;
+                        this.RTTVAR = (1 - this.beta) * this.RTTVAR + this.beta * Math.abs(this.SRTT - R);
+                    }
+                    this.RTO = this.SRTT + 4*this.RTTVAR;
+                }
                 if(cwnd < ssthresh){//si on est en slowStart on augmente la taille de cwnd de 1 à chaque ack reçu
                     lastedCwnd=cwnd;
                     cwnd += 1;
                     newCwnd=cwnd;
-                    System.out.println("Slow start : le time est = "+time+ " le cwnd = "+cwnd);
-                    
-                    //test.add(" "+time+"    " +cwnd);
-
-                    
-                    
+                    System.out.println("Slow start : le time est = "+currentTime+ " le cwnd = "+cwnd);
+                    //test.add(" "+currentTime+"    " +cwnd);
                     cwndTemp = cwnd;
                     //System.out.println("slowStart : "+cwnd);
                 }else{//additive increase cwnd = cwnd + MSS^2/cwnd ici MSS vaut 1
@@ -122,13 +134,10 @@ public class ProtocolSenderSide extends Protocol{
                         cwnd = 1;
                     }
                     newCwnd=cwnd;
-                    //test.add(" "+time+"    " +cwnd);
-
+                    //test.add(" "+currentTime+"    " +cwnd);
                     System.out.println("additive increase newCwnd : "+newCwnd);
                     System.out.println("additive increase lastedCwnd: "+lastedCwnd);
                 }    
-                
-                
                 congestionTest[flagCongestion]=msg.seqNum;
                 flagCongestion=(flagCongestion+1)%3;
                 if(congestionTest[0]==congestionTest[1]&&congestionTest[0]==congestionTest[2]&&congestionTest[0]!=0){//si on a de la congestion
@@ -140,14 +149,14 @@ public class ProtocolSenderSide extends Protocol{
                     duplicated = msg.seqNum;
                     cwnd = Math.ceil(cwnd/2.); //Math.ceil comme ça la fenêtre ne vaut jamais 0
                     
-                    //test.add(" "+time+"    " +cwnd);
+                    //test.add(" "+currentTime+"    " +cwnd);
                     newCwnd=cwnd;
                     
                     cwndTemp = cwnd;
                     stopTimer();
 
                     if(lastAck+1 < packages.size()){
-                        //test.add(" "+time+"    " +cwnd);
+                        //test.add(" "+currentTime+"    " +cwnd);
                         this.sendBase = this.lastAck + 1;
                         this.nextSeqNum = this.lastAck + 1;
                         //startTimer();
@@ -155,12 +164,12 @@ public class ProtocolSenderSide extends Protocol{
                     }
                                         
                     
-                    //test.add(" "+time+"    " +cwnd);
+                    //test.add(" "+currentTime+"    " +cwnd);
                 }
                 
                 if(lastedCwnd!=newCwnd){
-                        //test.add(" "+time+"    " +newCwnd);
-                        test.add(" "+time+"    " +lastedCwnd);
+                        //test.add(" "+currentTime+"    " +newCwnd);
+                        test.add(" "+currentTime+"    " +lastedCwnd);
                     }
                 
                 
@@ -180,7 +189,6 @@ public class ProtocolSenderSide extends Protocol{
                 }
                 if(msg.seqNum==totalMsg-1){
                     try {
-
                         file = new File("Plots.txt");
 
                         writer = new BufferedWriter(new FileWriter(file));
@@ -200,8 +208,13 @@ public class ProtocolSenderSide extends Protocol{
     
     public void send() throws Exception{
         GoBackNMsg msg = new GoBackNMsg(packages.get(this.nextSeqNum),this.nextSeqNum, false);
-        //System.out.println("On est dans la methode send() , cwnd = "+cwnd);
         if(nextSeqNum < sendBase + cwnd && this.nextSeqNum < packages.size()){//si nextSeqNum est dans la fenêtre et qu'il reste des messages dans la liste
+            //Si on est dans la phase de calcul de RTO, on envoi un message et  on enregistre la valeur du timer.
+            if(this.computeRTO){
+                this.computeRTO = false;
+                this.expected = msg.seqNum;
+                this.time1 = scheduler.getCurrentTime();
+            }
             host.getIPLayer().send(IPAddress.ANY, dst, IP_PROTO_GOBACKN, msg);
             if(this.sendBase == this.nextSeqNum){
                 startTimer();
@@ -212,14 +225,12 @@ public class ProtocolSenderSide extends Protocol{
     }
     
     public void startTimer(){
-        //System.out.println("start");
         stopTimer();
-        this.timer = new MyTimer(host.getNetwork().getScheduler(),3.0);
+        this.timer = new MyTimer(host.getNetwork().getScheduler(),RTO);
         this.timer.start();
     }
     
     public void stopTimer(){
-        //System.out.println("stop");
         if(this.timer.isRunning())
             this.timer.stop();
     }
