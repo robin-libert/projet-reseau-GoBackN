@@ -13,7 +13,8 @@ public class GoBackNMsg implements Message{
     public boolean isAck;
     
      /**
-      *@param seqNum
+      * Constructeur d'un acquittement.
+      * @param seqNum
       * @param isAck
       */
     public GoBackNMsg(int seqNum, boolean isAck) {
@@ -22,7 +23,8 @@ public class GoBackNMsg implements Message{
     }
     
      /**
-      *@param seqNum
+      * Constructeur d'un message.
+      * @param seqNum
       * @param isAck
       * @param msg
       */
@@ -31,7 +33,11 @@ public class GoBackNMsg implements Message{
         this.num = msg;
         this.isAck = isAck;
     }
-	
+    
+    /**
+     * Représentation d'un message sous forme de String.
+     * @return La représentation d'un message sous forme de String
+     */
     public String toString() {
 	return (this.isAck)?"This is an ack for " + seqNum:"This is message number " + seqNum + ". It contains: " + num;
     }

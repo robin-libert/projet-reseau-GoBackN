@@ -7,10 +7,9 @@ import reso.ip.IPAddress;
 import reso.ip.IPHost;
 import reso.ip.IPLayer;
 
-    /**
-     * Cette classe permet d'attribuer à chaque message un entier et d'envoyer la liste des messages à la classe ProtocolSenderSide qui s'occupera du protocol GoBackN ainsi 
-     *que le probleme de congestion.
-     */
+/**
+ * Cette classe représente une application qui va envoyer des messages. Chaque message contiendra un unique entier valant 42.
+ */
 public class AppSender extends AbstractApplication{
     private final IPLayer ip;
     private final IPAddress dst;
@@ -19,10 +18,11 @@ public class AppSender extends AbstractApplication{
     private int proba;
     
     /**
-     * @param host
-     * @param dst
-     * @param n
-     * @param p
+     * Constructeur de l'application chargée d'envoyer des messages.
+     * @param host adresse ip de l'hote
+     * @param dst adresse ip du destinataire
+     * @param n nombre de messages à envoyer
+     * @param p probabilités de pertes dans l'envoi d'un message
      */
     public AppSender(IPHost host, IPAddress dst, int n, int p) {
         super(host, "sender");
