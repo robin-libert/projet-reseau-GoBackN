@@ -34,15 +34,15 @@ public class ProtocolSenderSide extends Protocol{
     private double time1, time2;//variables utiles pour le contrôle de congestion
     private boolean computeRTO;//c'est un flag qui permet de savoir quand démarrer le timer pour le calcul de RTO
     
-    private int[] congestionTest;//on stocke dans ce tableau les 3 derniers acks recus, utile pour detecter de la congestion (3 acks duppliques)
-    private int flagCongestion=0;//l indice du tableau ou je vais stocker le dernier ack recu
+    private int[] congestionTest;//on stocke dans ce tableau les 3 derniers acks recus, utile pour détecter de la congestion (3 acks duppliqués)
+    private int flagCongestion=0;//l'indice du tableau ou je vais stocker le dernier ack recu
 
-    private ArrayList<String> plots; //je stocke les plots a afficher dans cette arrayList
+    private ArrayList<String> plots; //je stocke les plots à afficher dans cette arrayList
     private  File file;
     BufferedWriter writer = null;
 
-    private double lastedCwnd=0;//la derniere taille de fenetre de congestion  recue
-    private double newCwnd=0;//la nouvelle taille de fenetre de congestion recue
+    private double lastedCwnd=0;//la derniere taille de fenêtre de congestion  recue
+    private double newCwnd=0;//la nouvelle taille de fenêtre de congestion recue
 
 
     /**
@@ -82,7 +82,7 @@ public class ProtocolSenderSide extends Protocol{
     }
     
     /**
-     * Decris le fonctionnement du protocol lorsque l'on reçoit un acquittement. 
+     * Décris le fonctionnement du protocol lorsque l'on reçoit un acquittement. 
      * Dans cette methode nous implementons le slow start, l additive increase, la multiplicative decrease et la reaction lors d'un timeOut.
      * @param src
      * @param datagram
@@ -181,7 +181,7 @@ public class ProtocolSenderSide extends Protocol{
                         startTimer();
                     }
                 }
-                if(msg.seqNum==packages.size()-1){ // si le dernier message est recu, je peux ecrire dans mon ficher .txt les valeurs de l'arrayList plots
+                if(msg.seqNum==packages.size()-1){ // si le dernier message est recu, je peux écrire dans mon ficher .txt les valeurs de l'arrayList plots
                     writePlots();
                 }
             }
@@ -190,7 +190,7 @@ public class ProtocolSenderSide extends Protocol{
     
     
     /**
-     * Cette methode envoie des messages comme définit dans le protocol gobackn.
+     * Cette méthode envoie des messages comme définit dans le protocol gobackn.
      * @throws Exception 
      */
     public void send() throws Exception{
@@ -212,7 +212,7 @@ public class ProtocolSenderSide extends Protocol{
     }
     
    /**
-    * Cette methode stoppe le timer si il etait en marche, en cree un autre et lance ce nouveau timer. 
+    * Cette méthode stoppe le timer si il etait en marche, en crée un autre et lance ce nouveau timer. 
     */
     public void startTimer(){
         stopTimer();
@@ -220,7 +220,7 @@ public class ProtocolSenderSide extends Protocol{
         this.timer.start();
     }
    /**
-    * Cette methode verifie si le timer est en marche et si oui, le stoppe.
+    * Cette méthode vérifie si le timer est en marche et si oui, le stoppe.
     */
     public void stopTimer(){
         if(this.timer.isRunning())
@@ -228,7 +228,7 @@ public class ProtocolSenderSide extends Protocol{
     }
     
    /**
-    * Cette methode ecrit les plots dans le fichier nomme "Plots.txt".
+    * Cette méthode écrit les plots dans le fichier nommé "Plots.txt".
     * @throws IOException
     */
     public void writePlots() throws IOException{
@@ -249,7 +249,7 @@ public class ProtocolSenderSide extends Protocol{
     
     
    /**
-    * Cette methode decrit comment reagir lors de la reception d un timeOut.
+    * Cette méthode décrit comment réagir lors de la reception d un timeOut.
     * @throws Exception
     */
     public void timeout() throws Exception{

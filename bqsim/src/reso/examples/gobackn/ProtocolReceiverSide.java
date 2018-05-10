@@ -9,8 +9,8 @@ import reso.ip.IPInterfaceAdapter;
 
  /**
   * Dans cette classe est implémenté le protocol gobackn du côté de celui qui reçoit les messages.
-  * Cette classe represente le receveur dans le protocole GoBackN : quand elle recoit un message, elle renvoie un ack pour transmettre a la classe ProtocolSenderSide
-  * que le message a bien ete recu. Pour pouvoir experimenter le probleme de congestion un certain nombre de ack ne sera pas renvoye.
+  * Cette classe représente le receveur dans le protocole GoBackN : quand elle recoit un message, elle renvoie un ack pour transmettre a la classe ProtocolSenderSide
+  * que le message a bien eté recu. Pour pouvoir expérimenter le problème de congestion un certain nombre de ack ne sera pas renvoyé.
   */
 public class ProtocolReceiverSide extends Protocol{
     private int currentSeqNum;
@@ -33,7 +33,7 @@ public class ProtocolReceiverSide extends Protocol{
     
     
     /**
-     * Decris les differents comportements du receveur lorsque cette classe recoit un message. 
+     * Décris les différents comportements du receveur lorsque cette classe recoit un message. 
      * @param src
      * @param datagram
      * @throws Exception
@@ -43,7 +43,7 @@ public class ProtocolReceiverSide extends Protocol{
         GoBackNMsg msg = (GoBackNMsg) datagram.getPayload();
         if(!msg.isAck){//Du coté du receveur, nous allons seulement recevoir des messages
             //Quand on reçoit un message, on renvois un ack.
-            if(msg.seqNum == -1){//Quand le numéro de séquence vaut -1, on établi la connexion.
+            if(msg.seqNum == -1){//Quand le numéro de séquence vaut -1, on établit la connexion.
                 System.out.println("Initialisation de la connexion ...");
                 host.getIPLayer().send(IPAddress.ANY, datagram.src, IP_PROTO_GOBACKN, new GoBackNMsg(msg.seqNum, true));
             }else{

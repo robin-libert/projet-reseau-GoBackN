@@ -8,15 +8,15 @@ import reso.scheduler.Scheduler;
 import reso.utilities.NetworkBuilder;
 
 /**
- * Cette classe est la classe utilisee pour lancer la simulation du protocol GoBackN et le controle de congestion. Pour pouvoir correctement l'utiliser il faut
- * fournir 2 arguments en ligne de commande : le premier etant le nombre de messages a envoyer et le second doit etre la probabilite de perte de messages.
+ * Cette classe est la classe utilisée pour lancer la simulation du protocol GoBackN et le contrôle de congestion. Pour pouvoir correctement l'utiliser il faut
+ * fournir 2 arguments en ligne de commande : le premier étant le nombre de messages à envoyer et le second doit être la probabilité de perte de messages.
  */
 public class Program{
 
     public static void main(String [] args) {
         
-        int numberOfMessages=Integer.parseInt(args[0]); // le premier argument doit etre le nombre de message
-        int probability=Integer.parseInt(args[1]); // le deuxiemre argument doit etre la probabilite de perte
+        int numberOfMessages=Integer.parseInt(args[0]); // le premier argument doit être le nombre de message
+        int probability=Integer.parseInt(args[1]); // le deuxiemre argument doit être la probabilité de perte
         if((args.length==2)&&(probability>=0&&probability<100)){
  
         
@@ -36,7 +36,7 @@ public class Program{
 
                 IPHost host2= NetworkBuilder.createHost(network,"H2", IP_ADDR2, MAC_ADDR2);
                 host2.getIPLayer().addRoute(IP_ADDR1, "eth0");
-                host2.addApplication(new AppReceiver(host2,probability));//reception de messages avec proba x
+                host2.addApplication(new AppReceiver(host2,probability));//réception de messages avec proba x
 
                 EthernetInterface h1_eth0= (EthernetInterface) host1.getInterfaceByName("eth0");
                 EthernetInterface h2_eth0= (EthernetInterface) host2.getInterfaceByName("eth0");
